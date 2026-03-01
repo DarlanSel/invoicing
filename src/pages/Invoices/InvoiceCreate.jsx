@@ -26,7 +26,7 @@ function getMonthOptions() {
 
 export function InvoiceCreate() {
   const navigate = useNavigate();
-  const { projects, invoices, addInvoice, settings, saveSettings } = useOutletContext();
+  const { projects, addInvoice, settings } = useOutletContext();
 
   const activeProjects = projects.filter(p => p.isActive);
   const monthOptions = getMonthOptions();
@@ -52,17 +52,14 @@ export function InvoiceCreate() {
     setBillingMonth(m);
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!project) return;
 
-    const invoiceNumber = formatInvoiceNumber(settings.nextInvoiceNumber);
     const now = new Date();
     const dueAt = addDays(now, settings.paymentTermsDays);
 
     const invoice = {
-      invoiceNumber,
-      invoiceNumberRaw: settings.nextInvoiceNumber,
       projectId: project.id,
       projectName: project.name,
       status: 'draft',
@@ -84,8 +81,7 @@ export function InvoiceCreate() {
       paidAt: null,
     };
 
-    addInvoice(invoice);
-    saveSettings({ nextInvoiceNumber: settings.nextInvoiceNumber + 1 });
+    await addInvoice(invoice);
     navigate('/invoices');
   }
 

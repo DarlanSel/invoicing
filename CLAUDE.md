@@ -5,27 +5,55 @@
 - React 18 + Vite 6 + Tailwind CSS v3 + React Router v6
 - date-fns for date/business-day logic
 - @react-pdf/renderer for client-side PDF generation
+- Express 5 + better-sqlite3 for the API server
 - Node v23+ required
 
 ## Architecture
 
-All state lives in `localStorage` — there is no backend. Three custom hooks manage state:
+State is persisted in SQLite (`data/invoicing.db`) via an Express API on port 3001. Three custom hooks manage state; each fetches from `/api/*` on mount and exposes `{ loading, error }` alongside their data:
 
-| Hook          | localStorage key     | Purpose                                                             |
-| ------------- | -------------------- | ------------------------------------------------------------------- |
-| `useSettings` | `invoicing_settings` | Business/client info, nextInvoiceNumber, currency, paymentTermsDays |
-| `useProjects` | `invoicing_projects` | Array of project objects                                            |
-| `useInvoices` | `invoicing_invoices` | Array of invoice snapshots                                          |
+| Hook          | API endpoint    | Purpose                                                             |
+| ------------- | --------------- | ------------------------------------------------------------------- |
+| `useSettings` | `/api/settings` | Business/client info, nextInvoiceNumber, currency, paymentTermsDays |
+| `useProjects` | `/api/projects` | Array of project objects                                            |
+| `useInvoices` | `/api/invoices` | Array of invoice snapshots                                          |
 
-`App.jsx` initialises all three hooks and passes everything down via React Router's `useOutletContext`. Every page reads context with `const { ... } = useOutletContext()`.
+`App.jsx` initialises all three hooks and passes everything down via React Router's `useOutletContext`. Every page reads context with `const { ... } = useOutletContext()`. While any hook is loading, App shows a spinner; on error it shows a banner.
+
+In dev, Vite proxies `/api/*` to `http://localhost:3001` (configured in `vite.config.js`).
+
+## Server layout
+
+```
+server/
+  index.js              — Express entry, listens on port 3001
+  db/
+    connection.js       — opens data/invoicing.db, enables WAL, runs schema.sql
+    schema.sql          — DDL: settings (singleton row), projects, invoices
+    serialise.js        — snake_case DB rows → camelCase JS objects
+  routes/
+    settings.js         — GET + PATCH /api/settings
+    projects.js         — GET, POST, PATCH /:id, DELETE /:id
+    invoices.js         — GET, POST, PATCH /:id, DELETE /:id
+  middleware/
+    errorHandler.js     — global 4-arg Express error handler, returns JSON
+```
 
 ## Invoice number sequencing
 
-`settings.nextInvoiceNumber` is an integer. On invoice creation it is formatted via `formatInvoiceNumber(n)` → `"INV-0042"` and then `saveSettings({ nextInvoiceNumber: n + 1 })` is called. The raw integer is also stored on the invoice as `invoiceNumberRaw` for numeric sorting.
+`settings.nextInvoiceNumber` is an integer stored in the DB. On `POST /api/invoices` the server runs a transaction that reads the current value, formats it via `formatInvoiceNumber(n)` → `"INV-0042"`, inserts the invoice, then increments the counter. The frontend no longer calls `saveSettings({ nextInvoiceNumber: n + 1 })` — the server handles it atomically. The raw integer is stored as `invoiceNumberRaw` for numeric sorting.
+
+`settings.nextInvoiceNumber` is still read in `InvoiceCreate.jsx` for the preview line ("Invoice #INV-0042 will be created as a draft"), which stays accurate as long as no concurrent creation races.
 
 ## Invoice data model — immutable snapshot
 
 When an invoice is created, all sender/receiver fields (`businessName`, `businessAddress`, `clientName`, `clientAddress`) are copied from settings at that moment. This ensures PDFs remain correct even if settings are later changed.
+
+## Hook patterns
+
+**useSettings**: `useEffect` fetches on mount. `saveSettings` does an optimistic local update then reconciles with the server response.
+
+**useProjects** / **useInvoices**: `useEffect` fetches on mount. `addProject`/`updateProject`/`deleteProject` are optimistic — they update state immediately, fire the API call, and roll back on error. `addInvoice` is **not** optimistic — it awaits the server (which assigns `invoiceNumber`/`invoiceNumberRaw`) and returns the created invoice. Callers must `await addInvoice(...)`.
 
 ## Business days calculation
 
@@ -58,7 +86,9 @@ URL.revokeObjectURL(url);
 ## Commands
 
 ```bash
-npm run dev      # development server on :5173
+npm run dev      # start API (port 3001) + Vite (port 5173) concurrently
+npm run dev:api  # API server only
+npm run dev:web  # Vite only
 npm run build    # production build → dist/
 npm run preview  # serve dist/ locally
 ```

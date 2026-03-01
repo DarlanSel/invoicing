@@ -1,6 +1,6 @@
 # Invoicing
 
-A Harvest-inspired invoicing web app for consultants. Runs entirely in the browser — no backend, no account, all data stored in `localStorage`.
+A Harvest-inspired invoicing web app for consultants. Data is persisted in a local SQLite database via a lightweight Express API — no cloud, no account.
 
 ## Features
 
@@ -10,17 +10,19 @@ A Harvest-inspired invoicing web app for consultants. Runs entirely in the brows
 - **PDF download** — generates real vector PDFs (text is selectable and copyable)
 - **Status tracking** — draft → sent → paid workflow with badge indicators
 - **Harvest migration** — configurable starting invoice number so you can pick up where Harvest left off
-- **Persistent** — all data survives page refreshes via `localStorage`
+- **Persistent** — all data stored in `data/invoicing.db` (survives browser clears)
 
 ## Tech stack
 
-|            |                     |
-| ---------- | ------------------- |
-| UI         | React 18 + Vite 6   |
-| Styling    | Tailwind CSS v3     |
-| Routing    | React Router v6     |
-| Date logic | date-fns            |
-| PDF        | @react-pdf/renderer |
+|            |                          |
+| ---------- | ------------------------ |
+| UI         | React 18 + Vite 6        |
+| Styling    | Tailwind CSS v3          |
+| Routing    | React Router v6          |
+| Date logic | date-fns                 |
+| PDF        | @react-pdf/renderer      |
+| API        | Express 5                |
+| Database   | SQLite via better-sqlite3 |
 
 ## Getting started
 
@@ -30,6 +32,10 @@ Requires Node v23+. If you use nvm: `nvm use`
 npm install
 npm run dev
 ```
+
+This starts two processes concurrently:
+- API server on [http://localhost:3001](http://localhost:3001)
+- Vite dev server on [http://localhost:5173](http://localhost:5173)
 
 Open [http://localhost:5173](http://localhost:5173).
 
@@ -43,10 +49,26 @@ Open [http://localhost:5173](http://localhost:5173).
 ## Project structure
 
 ```
+server/
+  index.js                    — Express entry point (port 3001)
+  db/
+    connection.js             — opens data/invoicing.db, WAL mode, runs schema
+    schema.sql                — DDL for settings, projects, invoices tables
+    serialise.js              — snake_case rows → camelCase objects
+  routes/
+    settings.js               — GET + PATCH /api/settings
+    projects.js               — CRUD /api/projects
+    invoices.js               — CRUD /api/invoices
+  middleware/
+    errorHandler.js           — global JSON error handler
+
+data/
+  invoicing.db                — SQLite database (gitignored)
+
 src/
   constants/defaults.js       — default values, color palettes
   utils/
-    storage.js                — localStorage read/write wrappers
+    api.js                    — fetch client for all API calls
     businessDays.js           — countBusinessDays, calculateBillableHours
     invoiceNumber.js          — formatInvoiceNumber(n) → "INV-0042"
   hooks/
@@ -74,3 +96,5 @@ src/
 npm run build   # outputs to dist/
 npm run preview # serve the production build locally
 ```
+
+The production build serves only the frontend. Run `node server/index.js` separately (or use a process manager) to keep the API available.

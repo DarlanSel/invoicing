@@ -1,22 +1,28 @@
-import { useState, useCallback } from 'react';
-import { getItem, setItem } from '../utils/storage';
+import { useState, useEffect, useCallback } from 'react';
+import { api } from '../utils/api';
 import { DEFAULT_SETTINGS } from '../constants/defaults';
 
-const KEY = 'invoicing_settings';
-
 export function useSettings() {
-  const [settings, setSettingsState] = useState(() => ({
-    ...DEFAULT_SETTINGS,
-    ...getItem(KEY, {}),
-  }));
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const saveSettings = useCallback((updates) => {
-    setSettingsState(prev => {
-      const next = { ...prev, ...updates };
-      setItem(KEY, next);
-      return next;
-    });
+  useEffect(() => {
+    api.getSettings()
+      .then(setSettings)
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
   }, []);
 
-  return { settings, saveSettings };
+  const saveSettings = useCallback(async (updates) => {
+    setSettings(prev => ({ ...prev, ...updates }));
+    try {
+      const updated = await api.saveSettings(updates);
+      setSettings(updated);
+    } catch (err) {
+      setError(err.message);
+    }
+  }, []);
+
+  return { settings, saveSettings, loading, error };
 }

@@ -1,39 +1,44 @@
-import { useState, useCallback } from 'react';
-import { getItem, setItem } from '../utils/storage';
-
-const KEY = 'invoicing_invoices';
-
-function save(invoices) {
-  setItem(KEY, invoices);
-}
+import { useState, useEffect, useCallback } from 'react';
+import { api } from '../utils/api';
 
 export function useInvoices() {
-  const [invoices, setInvoicesState] = useState(() => getItem(KEY, []));
+  const [invoices, setInvoices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const addInvoice = useCallback((invoice) => {
-    setInvoicesState(prev => {
-      const next = [...prev, { ...invoice, id: crypto.randomUUID(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }];
-      save(next);
-      return next;
-    });
-    return invoice;
+  useEffect(() => {
+    api.getInvoices()
+      .then(setInvoices)
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
   }, []);
 
-  const updateInvoice = useCallback((id, updates) => {
-    setInvoicesState(prev => {
-      const next = prev.map(inv => inv.id === id ? { ...inv, ...updates, updatedAt: new Date().toISOString() } : inv);
-      save(next);
-      return next;
-    });
+  const addInvoice = useCallback(async (invoice) => {
+    const created = await api.addInvoice(invoice);
+    setInvoices(prev => [...prev, created]);
+    return created;
   }, []);
 
-  const deleteInvoice = useCallback((id) => {
-    setInvoicesState(prev => {
-      const next = prev.filter(inv => inv.id !== id);
-      save(next);
-      return next;
-    });
+  const updateInvoice = useCallback(async (id, updates) => {
+    setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, ...updates } : inv));
+    try {
+      const updated = await api.updateInvoice(id, updates);
+      setInvoices(prev => prev.map(inv => inv.id === id ? updated : inv));
+    } catch (err) {
+      setError(err.message);
+      api.getInvoices().then(setInvoices).catch(() => {});
+    }
   }, []);
 
-  return { invoices, addInvoice, updateInvoice, deleteInvoice };
+  const deleteInvoice = useCallback(async (id) => {
+    setInvoices(prev => prev.filter(inv => inv.id !== id));
+    try {
+      await api.deleteInvoice(id);
+    } catch (err) {
+      setError(err.message);
+      api.getInvoices().then(setInvoices).catch(() => {});
+    }
+  }, []);
+
+  return { invoices, addInvoice, updateInvoice, deleteInvoice, loading, error };
 }
