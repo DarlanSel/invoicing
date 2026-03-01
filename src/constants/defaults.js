@@ -6,6 +6,7 @@ export const DEFAULT_SETTINGS = {
   nextInvoiceNumber: 1,
   currency: 'USD',
   paymentTermsDays: 14,
+  defaultServiceDescription: '',
 };
 
 export const CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'CHF', 'JPY'];

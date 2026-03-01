@@ -34,7 +34,7 @@ export function InvoiceCreate() {
   const [projectId, setProjectId] = useState(activeProjects[0]?.id || '');
   const [billingYear, setBillingYear] = useState(monthOptions[1]?.year ?? new Date().getFullYear());
   const [billingMonth, setBillingMonth] = useState(monthOptions[1]?.month ?? new Date().getMonth() - 1);
-  const [serviceDescription, setServiceDescription] = useState('');
+  const [serviceDescription, setServiceDescription] = useState(settings.defaultServiceDescription || '');
   const [notes, setNotes] = useState('');
   const [hoursOverride, setHoursOverride] = useState('');
 

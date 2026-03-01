@@ -67,11 +67,6 @@ export function InvoicePDF({ invoice }) {
             <Text style={S.invoiceNum}>{invoiceNumber}</Text>
             <Text style={S.label}>Invoice</Text>
           </View>
-          <View>
-            <Text style={[S.statusBadge, { backgroundColor: statusBgColor(status), color: statusTextColor(status) }]}>
-              {status}
-            </Text>
-          </View>
         </View>
 
         {/* Sender / Receiver */}

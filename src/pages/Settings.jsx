@@ -83,6 +83,17 @@ export function Settings() {
           <Select label="Currency" name="currency" value={form.currency} onChange={handleChange}>
             {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
           </Select>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">Default Service Description</label>
+            <input
+              name="defaultServiceDescription"
+              value={form.defaultServiceDescription}
+              onChange={handleChange}
+              placeholder="Consulting services"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            />
+            <p className="text-xs text-gray-500">Pre-fills the service description when creating an invoice.</p>
+          </div>
           <p className="text-xs text-gray-500">
             Use "Next Invoice Number" to migrate from Harvest — set it to your desired starting number and it will increment automatically.
           </p>
