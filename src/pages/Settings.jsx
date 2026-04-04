@@ -99,6 +99,34 @@ export function Settings() {
           </p>
         </Card>
 
+        <Card className="p-6 space-y-4">
+          <h2 className="font-semibold text-gray-900">GitLab Integration</h2>
+          <p className="text-xs text-gray-500">
+            Connect your GitLab account to auto-fill time entry descriptions with merge request titles.
+          </p>
+          <Input
+            label="GitLab Domain"
+            name="gitlabDomain"
+            value={form.gitlabDomain}
+            onChange={handleChange}
+            placeholder="https://gitlab.com"
+          />
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">Personal Access Token</label>
+            <input
+              type="password"
+              name="gitlabToken"
+              value={form.gitlabToken}
+              onChange={handleChange}
+              placeholder="glpat-xxxxxxxxxxxxxxxxxxxx"
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            />
+            <p className="text-xs text-gray-500">
+              Create a token with <code className="bg-gray-100 px-1 rounded">read_api</code> scope in GitLab → Settings → Access Tokens.
+            </p>
+          </div>
+        </Card>
+
         <div className="flex items-center gap-3">
           <Button type="submit">Save Settings</Button>
           {saved && <span className="text-sm text-green-600 font-medium">Saved!</span>}

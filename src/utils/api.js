@@ -31,4 +31,6 @@ export const api = {
   addTimeEntry: (entry) => request('/api/time-entries', { method: 'POST', body: entry }),
   updateTimeEntry: (id, updates) => request(`/api/time-entries/${id}`, { method: 'PATCH', body: updates }),
   deleteTimeEntry: (id) => request(`/api/time-entries/${id}`, { method: 'DELETE' }),
+
+  fetchGitlabMRTitles: (date) => request(`/api/gitlab/merge-requests?date=${date}`),
 };

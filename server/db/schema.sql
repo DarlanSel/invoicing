@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS settings (
   currency TEXT NOT NULL DEFAULT 'USD',
   payment_terms_days INTEGER NOT NULL DEFAULT 14,
   default_service_description TEXT NOT NULL DEFAULT '',
+  gitlab_domain TEXT NOT NULL DEFAULT '',
+  gitlab_token TEXT NOT NULL DEFAULT '',
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 INSERT OR IGNORE INTO settings (id) VALUES (1);

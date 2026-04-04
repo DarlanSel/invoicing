@@ -6,14 +6,17 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { api } from '../../utils/api';
 
 function formatDate(iso) {
   return format(parseISO(iso), 'EEE, MMM d');
 }
 
 export function TimeEntries() {
-  const { projects, timeEntries, addTimeEntry, updateTimeEntry, deleteTimeEntry } = useOutletContext();
+  const { projects, timeEntries, addTimeEntry, updateTimeEntry, deleteTimeEntry, settings } = useOutletContext();
   const activeProjects = projects.filter(p => p.isActive);
+  const gitlabConfigured = Boolean(settings.gitlabDomain && settings.gitlabToken);
+  const [fetchingMRs, setFetchingMRs] = useState(false);
 
   // Week navigation
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
@@ -51,6 +54,21 @@ export function TimeEntries() {
       description: formDescription,
     });
     setFormDescription('');
+  }
+
+  async function handleFetchMRs() {
+    if (!formDate) return;
+    setFetchingMRs(true);
+    try {
+      const { titles } = await api.fetchGitlabMRTitles(formDate);
+      if (titles.length > 0) {
+        setFormDescription(titles.join('\n'));
+      }
+    } catch (err) {
+      console.error('Failed to fetch MR titles:', err);
+    } finally {
+      setFetchingMRs(false);
+    }
   }
 
   function startEdit(entry) {
@@ -134,13 +152,26 @@ export function TimeEntries() {
           </div>
           <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
             <label className="text-xs font-medium text-gray-500">Description</label>
-            <input
-              type="text"
-              value={formDescription}
-              onChange={e => setFormDescription(e.target.value)}
-              placeholder="What did you work on?"
-              className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-            />
+            <div className="flex gap-2">
+              <textarea
+                value={formDescription}
+                onChange={e => setFormDescription(e.target.value)}
+                placeholder="What did you work on?"
+                rows={2}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+              />
+              {gitlabConfigured && (
+                <button
+                  type="button"
+                  onClick={handleFetchMRs}
+                  disabled={fetchingMRs}
+                  title="Fetch MR titles from GitLab"
+                  className="shrink-0 px-3 py-2 text-sm font-medium rounded-lg border border-orange-300 text-orange-600 bg-orange-50 hover:bg-orange-100 disabled:opacity-50 disabled:cursor-wait transition-colors"
+                >
+                  {fetchingMRs ? '…' : '🦊 Fetch MRs'}
+                </button>
+              )}
+            </div>
           </div>
           <Button type="submit">+ Add</Button>
         </form>
@@ -178,11 +209,11 @@ export function TimeEntries() {
                   {editingId === entry.id ? (
                     <>
                       <td className="px-5 py-2">
-                        <input
-                          type="text"
+                        <textarea
                           value={editDescription}
                           onChange={e => setEditDescription(e.target.value)}
-                          className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          rows={2}
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
                           autoFocus
                         />
                       </td>
@@ -206,7 +237,7 @@ export function TimeEntries() {
                     </>
                   ) : (
                     <>
-                      <td className="px-5 py-3 text-gray-600">{entry.description || <span className="text-gray-300 italic">—</span>}</td>
+                      <td className="px-5 py-3 text-gray-600 whitespace-pre-wrap">{entry.description || <span className="text-gray-300 italic">—</span>}</td>
                       <td className="px-5 py-3 text-right font-medium">{entry.hours}</td>
                       <td className="px-5 py-3 text-right">
                         <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

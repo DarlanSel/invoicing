@@ -7,6 +7,8 @@ export const DEFAULT_SETTINGS = {
   currency: 'USD',
   paymentTermsDays: 14,
   defaultServiceDescription: '',
+  gitlabDomain: '',
+  gitlabToken: '',
 };
 
 export const CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'CHF', 'JPY'];

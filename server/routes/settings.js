@@ -13,6 +13,7 @@ router.patch('/', (req, res) => {
   const allowed = [
     'business_name', 'business_address', 'client_name', 'client_address',
     'next_invoice_number', 'currency', 'payment_terms_days', 'default_service_description',
+    'gitlab_domain', 'gitlab_token',
   ];
 
   const camelToSnake = (s) => s.replace(/[A-Z]/g, c => `_${c.toLowerCase()}`);

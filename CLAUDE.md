@@ -35,6 +35,8 @@ server/
     settings.js         — GET + PATCH /api/settings
     projects.js         — GET, POST, PATCH /:id, DELETE /:id
     invoices.js         — GET, POST, PATCH /:id, DELETE /:id
+    time-entries.js     — GET, POST, PATCH /:id, DELETE /:id
+    gitlab.js           — GET /api/gitlab/merge-requests?date= (proxies GitLab API, reads token from settings)
   middleware/
     errorHandler.js     — global 4-arg Express error handler, returns JSON
 ```

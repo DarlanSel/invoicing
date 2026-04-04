@@ -3,6 +3,7 @@ import settingsRouter from './routes/settings.js';
 import projectsRouter from './routes/projects.js';
 import invoicesRouter from './routes/invoices.js';
 import timeEntriesRouter from './routes/time-entries.js';
+import gitlabRouter from './routes/gitlab.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
@@ -12,6 +13,7 @@ app.use('/api/settings', settingsRouter);
 app.use('/api/projects', projectsRouter);
 app.use('/api/invoices', invoicesRouter);
 app.use('/api/time-entries', timeEntriesRouter);
+app.use('/api/gitlab', gitlabRouter);
 
 app.use(errorHandler);
 
