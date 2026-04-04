@@ -9,7 +9,7 @@ export function InvoicePreview({ invoice }) {
     invoiceNumber, billingMonth, status,
     businessName, businessAddress,
     clientName, clientAddress,
-    issuedAt, dueAt,
+    issuedAt, dueAt, poNumber,
     serviceDescription, hoursWorked, hourlyRate, subtotal, total, currency,
     notes, lineItems = [],
   } = invoice;
@@ -50,7 +50,7 @@ export function InvoicePreview({ invoice }) {
       </div>
 
       {/* Dates */}
-      <div className="grid grid-cols-3 gap-4 mb-10 bg-gray-50 rounded-lg p-4">
+      <div className={`grid gap-4 mb-10 bg-gray-50 rounded-lg p-4 ${poNumber ? 'grid-cols-4' : 'grid-cols-3'}`}>
         <div>
           <p className="text-xs uppercase tracking-wide text-gray-400 mb-0.5">Issued</p>
           <p className="font-medium">{issuedAt ? format(new Date(issuedAt), 'MMM d, yyyy') : '—'}</p>
@@ -63,6 +63,12 @@ export function InvoicePreview({ invoice }) {
           <p className="text-xs uppercase tracking-wide text-gray-400 mb-0.5">Period</p>
           <p className="font-medium">{billingMonth}</p>
         </div>
+        {poNumber && (
+          <div>
+            <p className="text-xs uppercase tracking-wide text-gray-400 mb-0.5">PO Number</p>
+            <p className="font-medium">{poNumber}</p>
+          </div>
+        )}
       </div>
 
       {/* Service description header */}

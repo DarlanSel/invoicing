@@ -12,4 +12,7 @@ const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.exec(readFileSync(SCHEMA_PATH, 'utf8'));
 
+// Migrations for columns added after initial schema
+try { db.exec("ALTER TABLE invoices ADD COLUMN po_number TEXT"); } catch {};
+
 export default db;

@@ -54,7 +54,7 @@ export function InvoicePDF({ invoice }) {
     invoiceNumber, billingMonth, status,
     businessName, businessAddress,
     clientName, clientAddress,
-    issuedAt, dueAt,
+    issuedAt, dueAt, poNumber,
     serviceDescription, hoursWorked, hourlyRate, subtotal, total, currency,
     notes, lineItems = [],
   } = invoice;
@@ -100,6 +100,12 @@ export function InvoicePDF({ invoice }) {
             <Text style={S.label}>Period</Text>
             <Text style={S.bold}>{billingMonth}</Text>
           </View>
+          {poNumber ? (
+            <View style={S.metaItem}>
+              <Text style={S.label}>PO Number</Text>
+              <Text style={S.bold}>{poNumber}</Text>
+            </View>
+          ) : null}
         </View>
 
         {/* Service description header */}

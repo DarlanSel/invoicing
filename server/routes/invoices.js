@@ -27,13 +27,13 @@ router.post('/', (req, res) => {
 
   const created = db.transaction(() => {
     const settings = db.prepare('SELECT next_invoice_number FROM settings WHERE id = 1').get();
-    const invoiceNumberRaw = settings.next_invoice_number;
-    const invoiceNumber = formatInvoiceNumber(invoiceNumberRaw);
+    const invoiceNumberRaw = Math.trunc(settings.next_invoice_number);
+    const invoiceNumber = String(invoiceNumberRaw);
 
     const {
       projectId, projectName, status = 'draft', billingMonth,
       serviceDescription = '', businessDays = 0,
-      hourlyRate = 0, notes = '',
+      hourlyRate = 0, poNumber = '', notes = '',
       businessName = '', businessAddress = '', clientName = '', clientAddress = '',
       currency = 'USD', issuedAt = null, dueAt = null, paidAt = null,
       lineItems = [],
@@ -47,18 +47,18 @@ router.post('/', (req, res) => {
       INSERT INTO invoices (
         id, invoice_number, invoice_number_raw, project_id, project_name, status,
         billing_month, service_description, business_days, hours_worked, hourly_rate,
-        subtotal, total, notes, business_name, business_address, client_name,
+        subtotal, total, po_number, notes, business_name, business_address, client_name,
         client_address, currency, issued_at, due_at, paid_at, created_at, updated_at
       ) VALUES (
         @id, @invoiceNumber, @invoiceNumberRaw, @projectId, @projectName, @status,
         @billingMonth, @serviceDescription, @businessDays, @hoursWorked, @hourlyRate,
-        @subtotal, @total, @notes, @businessName, @businessAddress, @clientName,
+        @subtotal, @total, @poNumber, @notes, @businessName, @businessAddress, @clientName,
         @clientAddress, @currency, @issuedAt, @dueAt, @paidAt, @createdAt, @updatedAt
       )
     `).run({
       id, invoiceNumber, invoiceNumberRaw, projectId, projectName, status,
       billingMonth, serviceDescription, businessDays, hoursWorked, hourlyRate,
-      subtotal, total, notes, businessName, businessAddress, clientName,
+      subtotal, total, poNumber, notes, businessName, businessAddress, clientName,
       clientAddress, currency, issuedAt, dueAt, paidAt, createdAt: now, updatedAt: now,
     });
 
@@ -101,7 +101,7 @@ router.patch('/:id', (req, res) => {
   if (!existing) return res.status(404).json({ error: 'Not found' });
 
   const camelToSnake = (s) => s.replace(/[A-Z]/g, c => `_${c.toLowerCase()}`);
-  const allowed = ['status', 'notes', 'service_description', 'paid_at', 'issued_at', 'due_at'];
+  const allowed = ['status', 'po_number', 'notes', 'service_description', 'paid_at', 'issued_at', 'due_at'];
 
   const updates = { updated_at: new Date().toISOString() };
   for (const [k, v] of Object.entries(req.body)) {

@@ -15,6 +15,8 @@ export function InvoiceDetail() {
   const { invoices, updateInvoice, deleteInvoice } = useOutletContext();
   const [pdfLoading, setPdfLoading] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [editingPoNumber, setEditingPoNumber] = useState(false);
+  const [poNumberDraft, setPoNumberDraft] = useState('');
 
   const invoice = invoices.find(inv => inv.id === id);
 
@@ -85,6 +87,40 @@ export function InvoiceDetail() {
           </div>
         }
       />
+
+      {invoice.status === 'draft' && (
+        <div className="max-w-2xl mx-auto mb-4 flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm">
+          <span className="text-gray-500 shrink-0">PO Number</span>
+          {editingPoNumber ? (
+            <>
+              <input
+                autoFocus
+                type="text"
+                value={poNumberDraft}
+                onChange={e => setPoNumberDraft(e.target.value)}
+                placeholder="e.g. PO-12345"
+                className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+              <button
+                onClick={() => { updateInvoice(invoice.id, { poNumber: poNumberDraft }); setEditingPoNumber(false); }}
+                className="text-orange-600 font-medium hover:text-orange-700"
+              >Save</button>
+              <button
+                onClick={() => setEditingPoNumber(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >Cancel</button>
+            </>
+          ) : (
+            <>
+              <span className="flex-1 font-medium text-gray-900">{invoice.poNumber || <span className="text-gray-400 italic">Not set</span>}</span>
+              <button
+                onClick={() => { setPoNumberDraft(invoice.poNumber || ''); setEditingPoNumber(true); }}
+                className="text-gray-400 hover:text-orange-600 font-medium"
+              >Edit</button>
+            </>
+          )}
+        </div>
+      )}
 
       <InvoicePreview invoice={invoice} />
 

@@ -29,7 +29,7 @@ function fmt(amount, currency) {
 
 export function InvoiceCreate() {
   const navigate = useNavigate();
-  const { projects, addInvoice, settings, timeEntries, refreshTimeEntries } = useOutletContext();
+  const { projects, addInvoice, invoices, settings, timeEntries, refreshTimeEntries } = useOutletContext();
 
   const activeProjects = projects.filter(p => p.isActive);
   const monthOptions = getMonthOptions();
@@ -38,6 +38,11 @@ export function InvoiceCreate() {
   const [billingYear, setBillingYear] = useState(monthOptions[1]?.year ?? new Date().getFullYear());
   const [billingMonth, setBillingMonth] = useState(monthOptions[1]?.month ?? new Date().getMonth() - 1);
   const [serviceDescription, setServiceDescription] = useState(settings.defaultServiceDescription || '');
+  const [poNumber, setPoNumber] = useState(() => {
+    if (!invoices.length) return '';
+    const last = [...invoices].sort((a, b) => b.invoiceNumberRaw - a.invoiceNumberRaw)[0];
+    return last.poNumber || '';
+  });
   const [notes, setNotes] = useState('');
 
   const project = projects.find(p => p.id === projectId);
@@ -81,6 +86,7 @@ export function InvoiceCreate() {
       serviceDescription: serviceDescription || `Consulting services — ${MONTHS[billingMonth]} ${billingYear}`,
       businessDays,
       hourlyRate,
+      poNumber,
       notes,
       businessName: settings.businessName,
       businessAddress: settings.businessAddress,
@@ -145,6 +151,12 @@ export function InvoiceCreate() {
             value={serviceDescription}
             onChange={e => setServiceDescription(e.target.value)}
             placeholder={`Consulting services — ${MONTHS[billingMonth]} ${billingYear}`}
+          />
+          <Input
+            label="PO Number (optional)"
+            value={poNumber}
+            onChange={e => setPoNumber(e.target.value)}
+            placeholder="e.g. PO-12345"
           />
         </Card>
 
