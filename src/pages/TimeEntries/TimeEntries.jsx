@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/Button';
 import { Select } from '../../components/ui/Select';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { api } from '../../utils/api';
+import { BackfillModal } from './BackfillModal';
 
 function formatDate(iso) {
   return format(parseISO(iso), 'EEE, MMM d');
@@ -17,6 +18,7 @@ export function TimeEntries() {
   const activeProjects = projects.filter(p => p.isActive);
   const gitlabConfigured = Boolean(settings.gitlabDomain && settings.gitlabToken);
   const [fetchingMRs, setFetchingMRs] = useState(false);
+  const [showBackfill, setShowBackfill] = useState(false);
 
   // Week navigation
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
@@ -104,6 +106,11 @@ export function TimeEntries() {
       <PageHeader
         title="Time"
         subtitle={`${format(weekStart, 'MMM d')} – ${format(weekEnd, 'MMM d, yyyy')}`}
+        action={gitlabConfigured && (
+          <Button size="sm" variant="outline" onClick={() => setShowBackfill(true)}>
+            🦊 Backfill
+          </Button>
+        )}
       />
 
       {/* Week navigation */}
@@ -277,6 +284,14 @@ export function TimeEntries() {
           </table>
         )}
       </Card>
+      {showBackfill && (
+        <BackfillModal
+          projects={projects}
+          timeEntries={timeEntries}
+          addTimeEntry={addTimeEntry}
+          onClose={() => setShowBackfill(false)}
+        />
+      )}
     </div>
   );
 }

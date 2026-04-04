@@ -33,4 +33,5 @@ export const api = {
   deleteTimeEntry: (id) => request(`/api/time-entries/${id}`, { method: 'DELETE' }),
 
   fetchGitlabMRTitles: (date) => request(`/api/gitlab/merge-requests?date=${date}`),
+  fetchGitlabMRTitlesBulk: (from, to) => request(`/api/gitlab/merge-requests/bulk?from=${from}&to=${to}`),
 };
