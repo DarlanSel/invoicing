@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: '⊞', end: true },
+  { to: '/time', label: 'Time', icon: '⏱' },
   { to: '/projects', label: 'Projects', icon: '◈' },
   { to: '/invoices', label: 'Invoices', icon: '◻' },
   { to: '/settings', label: 'Settings', icon: '⚙' },

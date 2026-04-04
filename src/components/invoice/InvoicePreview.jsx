@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 function fmt(amount, currency) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
@@ -11,8 +11,10 @@ export function InvoicePreview({ invoice }) {
     clientName, clientAddress,
     issuedAt, dueAt,
     serviceDescription, hoursWorked, hourlyRate, subtotal, total, currency,
-    notes,
+    notes, lineItems = [],
   } = invoice;
+
+  const hasLineItems = lineItems.length > 0;
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow p-10 max-w-2xl mx-auto font-sans text-sm text-gray-800">
@@ -63,10 +65,18 @@ export function InvoicePreview({ invoice }) {
         </div>
       </div>
 
+      {/* Service description header */}
+      {serviceDescription && (
+        <p className="text-sm text-gray-700 font-medium mb-4">{serviceDescription}</p>
+      )}
+
       {/* Line items */}
       <table className="w-full mb-8">
         <thead>
           <tr className="border-b-2 border-gray-200">
+            {hasLineItems && (
+              <th className="text-left py-2 text-xs uppercase tracking-wide text-gray-400 font-medium">Date</th>
+            )}
             <th className="text-left py-2 text-xs uppercase tracking-wide text-gray-400 font-medium">Description</th>
             <th className="text-right py-2 text-xs uppercase tracking-wide text-gray-400 font-medium">Hours</th>
             <th className="text-right py-2 text-xs uppercase tracking-wide text-gray-400 font-medium">Rate</th>
@@ -74,12 +84,24 @@ export function InvoicePreview({ invoice }) {
           </tr>
         </thead>
         <tbody>
-          <tr className="border-b border-gray-100">
-            <td className="py-3 text-gray-800">{serviceDescription}</td>
-            <td className="py-3 text-right text-gray-700">{hoursWorked}</td>
-            <td className="py-3 text-right text-gray-700">{fmt(hourlyRate, currency)}</td>
-            <td className="py-3 text-right font-medium text-gray-900">{fmt(subtotal, currency)}</td>
-          </tr>
+          {hasLineItems ? (
+            lineItems.map((item, i) => (
+              <tr key={item.id || i} className="border-b border-gray-100">
+                <td className="py-3 text-gray-700 whitespace-nowrap">{format(parseISO(item.date), 'MMM d')}</td>
+                <td className="py-3 text-gray-800">{item.description || '—'}</td>
+                <td className="py-3 text-right text-gray-700">{item.hours}</td>
+                <td className="py-3 text-right text-gray-700">{fmt(hourlyRate, currency)}</td>
+                <td className="py-3 text-right font-medium text-gray-900">{fmt(item.hours * hourlyRate, currency)}</td>
+              </tr>
+            ))
+          ) : (
+            <tr className="border-b border-gray-100">
+              <td className="py-3 text-gray-800">{serviceDescription}</td>
+              <td className="py-3 text-right text-gray-700">{hoursWorked}</td>
+              <td className="py-3 text-right text-gray-700">{fmt(hourlyRate, currency)}</td>
+              <td className="py-3 text-right font-medium text-gray-900">{fmt(subtotal, currency)}</td>
+            </tr>
+          )}
         </tbody>
       </table>
 

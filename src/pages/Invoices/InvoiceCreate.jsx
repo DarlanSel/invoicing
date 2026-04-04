@@ -1,12 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { addDays } from 'date-fns';
+import { addDays, format, parseISO } from 'date-fns';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Card } from '../../components/ui/Card';
-import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
+import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
-import { calculateBillableHours } from '../../utils/businessDays';
 import { formatInvoiceNumber } from '../../utils/invoiceNumber';
 
 const MONTHS = [
@@ -24,9 +23,13 @@ function getMonthOptions() {
   return opts;
 }
 
+function fmt(amount, currency) {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
+}
+
 export function InvoiceCreate() {
   const navigate = useNavigate();
-  const { projects, addInvoice, settings } = useOutletContext();
+  const { projects, addInvoice, settings, timeEntries, refreshTimeEntries } = useOutletContext();
 
   const activeProjects = projects.filter(p => p.isActive);
   const monthOptions = getMonthOptions();
@@ -36,15 +39,26 @@ export function InvoiceCreate() {
   const [billingMonth, setBillingMonth] = useState(monthOptions[1]?.month ?? new Date().getMonth() - 1);
   const [serviceDescription, setServiceDescription] = useState(settings.defaultServiceDescription || '');
   const [notes, setNotes] = useState('');
-  const [hoursOverride, setHoursOverride] = useState('');
 
   const project = projects.find(p => p.id === projectId);
-  const { businessDays, hours: calcHours } = calculateBillableHours(billingYear, billingMonth);
-  const hoursWorked = hoursOverride !== '' ? Number(hoursOverride) : calcHours;
+  const billingMonthStr = `${billingYear}-${String(billingMonth + 1).padStart(2, '0')}`;
   const hourlyRate = project ? project.hourlyRate : 0;
+
+  // Filter unbilled time entries for the selected project + month
+  const matchingEntries = useMemo(() => {
+    return timeEntries
+      .filter(e =>
+        e.projectId === projectId &&
+        e.date.startsWith(billingMonthStr) &&
+        !e.invoiced
+      )
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }, [timeEntries, projectId, billingMonthStr]);
+
+  const hoursWorked = matchingEntries.reduce((sum, e) => sum + e.hours, 0);
+  const businessDays = matchingEntries.length;
   const subtotal = hoursWorked * hourlyRate;
   const total = subtotal;
-  const billingMonthStr = `${billingYear}-${String(billingMonth + 1).padStart(2, '0')}`;
 
   function handleMonthChange(e) {
     const [y, m] = e.target.value.split('-').map(Number);
@@ -54,7 +68,7 @@ export function InvoiceCreate() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!project) return;
+    if (!project || matchingEntries.length === 0) return;
 
     const now = new Date();
     const dueAt = addDays(now, settings.paymentTermsDays);
@@ -66,10 +80,7 @@ export function InvoiceCreate() {
       billingMonth: billingMonthStr,
       serviceDescription: serviceDescription || `Consulting services — ${MONTHS[billingMonth]} ${billingYear}`,
       businessDays,
-      hoursWorked,
       hourlyRate,
-      subtotal,
-      total,
       notes,
       businessName: settings.businessName,
       businessAddress: settings.businessAddress,
@@ -79,9 +90,16 @@ export function InvoiceCreate() {
       issuedAt: now.toISOString(),
       dueAt: dueAt.toISOString(),
       paidAt: null,
+      lineItems: matchingEntries.map(entry => ({
+        timeEntryId: entry.id,
+        date: entry.date,
+        description: entry.description,
+        hours: entry.hours,
+      })),
     };
 
     await addInvoice(invoice);
+    await refreshTimeEntries();
     navigate('/invoices');
   }
 
@@ -99,8 +117,8 @@ export function InvoiceCreate() {
 
   return (
     <div>
-      <PageHeader title="New Invoice" subtitle="Auto-calculates business hours for the billing month" />
-      <form onSubmit={handleSubmit} className="max-w-2xl space-y-5">
+      <PageHeader title="New Invoice" subtitle="Pulls unbilled time entries for the selected project and month" />
+      <form onSubmit={handleSubmit} className="max-w-3xl space-y-5">
         <Card className="p-6 space-y-4">
           <h2 className="font-semibold text-gray-900">Invoice Details</h2>
           <Select label="Project" value={projectId} onChange={e => setProjectId(e.target.value)}>
@@ -130,27 +148,59 @@ export function InvoiceCreate() {
           />
         </Card>
 
+        {/* Time entries preview */}
         <Card className="p-6 space-y-4">
-          <h2 className="font-semibold text-gray-900">Hours Calculation</h2>
-          <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Business days in {MONTHS[billingMonth]} {billingYear}</span>
-              <span className="font-medium">{businessDays} days</span>
+          <h2 className="font-semibold text-gray-900">
+            Time Entries
+            <span className="ml-2 text-sm font-normal text-gray-500">
+              {matchingEntries.length} {matchingEntries.length === 1 ? 'entry' : 'entries'} found
+            </span>
+          </h2>
+          {matchingEntries.length === 0 ? (
+            <div className="bg-gray-50 rounded-lg p-6 text-center text-sm text-gray-500">
+              No unbilled time entries for {MONTHS[billingMonth]} {billingYear} on this project.
+              <br />
+              <span className="text-xs text-gray-400 mt-1 block">Log time entries on the Time page first.</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Calculated hours (× 8)</span>
-              <span className="font-medium">{calcHours} hrs</span>
+          ) : (
+            <div className="overflow-hidden rounded-lg border border-gray-200">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="text-left px-4 py-2.5 font-medium text-gray-500">Date</th>
+                    <th className="text-left px-4 py-2.5 font-medium text-gray-500">Description</th>
+                    <th className="text-right px-4 py-2.5 font-medium text-gray-500">Hours</th>
+                    <th className="text-right px-4 py-2.5 font-medium text-gray-500">Amount</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {matchingEntries.map(entry => (
+                    <tr key={entry.id}>
+                      <td className="px-4 py-2.5 text-gray-700 whitespace-nowrap">
+                        {format(parseISO(entry.date), 'EEE, MMM d')}
+                      </td>
+                      <td className="px-4 py-2.5 text-gray-600">
+                        {entry.description || <span className="text-gray-300 italic">—</span>}
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-gray-700">{entry.hours}</td>
+                      <td className="px-4 py-2.5 text-right font-medium text-gray-900">
+                        {fmt(entry.hours * hourlyRate, project?.currency || 'USD')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-gray-50 border-t border-gray-200">
+                    <td className="px-4 py-2.5 font-medium text-gray-700" colSpan={2}>Total</td>
+                    <td className="px-4 py-2.5 text-right font-bold text-gray-900">{hoursWorked} hrs</td>
+                    <td className="px-4 py-2.5 text-right font-bold text-orange-600">
+                      {fmt(total, project?.currency || 'USD')}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
-          </div>
-          <Input
-            label="Hours Worked (leave blank to use calculated)"
-            type="number"
-            min="0"
-            step="0.5"
-            value={hoursOverride}
-            onChange={e => setHoursOverride(e.target.value)}
-            placeholder={String(calcHours)}
-          />
+          )}
         </Card>
 
         <Card className="p-6 space-y-4">
@@ -167,7 +217,7 @@ export function InvoiceCreate() {
             <div className="flex justify-between border-t border-gray-200 pt-2 font-semibold text-base">
               <span>Total</span>
               <span className="text-orange-600">
-                {project ? new Intl.NumberFormat('en-US', { style: 'currency', currency: project.currency }).format(total) : '—'}
+                {project ? fmt(total, project.currency) : '—'}
               </span>
             </div>
           </div>
@@ -185,7 +235,7 @@ export function InvoiceCreate() {
         </Card>
 
         <div className="flex gap-3">
-          <Button type="submit">Create Invoice</Button>
+          <Button type="submit" disabled={matchingEntries.length === 0}>Create Invoice</Button>
           <Button type="button" variant="outline" onClick={() => navigate('/invoices')}>Cancel</Button>
         </div>
       </form>

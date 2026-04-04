@@ -12,19 +12,25 @@ const S = StyleSheet.create({
   metaBox: { flexDirection: 'row', backgroundColor: '#f9fafb', padding: 10, borderRadius: 4, marginBottom: 24, gap: 20 },
   metaItem: { flex: 1 },
   tableHeader: { flexDirection: 'row', borderBottomWidth: 1.5, borderBottomColor: '#e5e7eb', paddingBottom: 5, marginBottom: 4 },
-  tableRow: { flexDirection: 'row', paddingVertical: 8, borderBottomWidth: 0.5, borderBottomColor: '#f3f4f6' },
-  col_desc: { flex: 4 },
-  col_hours: { flex: 1, textAlign: 'right' },
-  col_rate: { flex: 1.5, textAlign: 'right' },
-  col_amount: { flex: 1.5, textAlign: 'right' },
+  tableRow: { flexDirection: 'row', paddingVertical: 6, borderBottomWidth: 0.5, borderBottomColor: '#f3f4f6' },
+  col_date: { flex: 1.2, textAlign: 'left' },
+  col_desc: { flex: 3, textAlign: 'left' },
+  col_hours: { flex: 0.8, textAlign: 'right' },
+  col_rate: { flex: 1.2, textAlign: 'right' },
+  col_amount: { flex: 1.3, textAlign: 'right' },
+  // Legacy columns (no date)
+  col_desc_legacy: { flex: 4, textAlign: 'left' },
+  col_hours_legacy: { flex: 1, textAlign: 'right' },
+  col_rate_legacy: { flex: 1.5, textAlign: 'right' },
+  col_amount_legacy: { flex: 1.5, textAlign: 'right' },
   colHead: { fontSize: 7, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5 },
   totalsRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10 },
   totalsBox: { width: 200 },
   totalLine: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 },
   grandTotal: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, borderTopWidth: 1, borderTopColor: '#e5e7eb', marginTop: 4 },
   grandTotalText: { fontFamily: 'Helvetica-Bold', fontSize: 12, color: '#f97316' },
-  statusBadge: { fontSize: 8, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, textTransform: 'uppercase', letterSpacing: 1 },
   notes: { borderTopWidth: 0.5, borderTopColor: '#e5e7eb', paddingTop: 16, marginTop: 24 },
+  serviceDesc: { fontSize: 10, color: '#374151', marginBottom: 10, fontFamily: 'Helvetica-Bold' },
 });
 
 function fmt(amount, currency) {
@@ -37,15 +43,10 @@ function fmtDate(iso) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function statusBgColor(status) {
-  if (status === 'paid') return '#dcfce7';
-  if (status === 'sent') return '#dbeafe';
-  return '#f3f4f6';
-}
-function statusTextColor(status) {
-  if (status === 'paid') return '#166534';
-  if (status === 'sent') return '#1d4ed8';
-  return '#4b5563';
+function fmtShortDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 export function InvoicePDF({ invoice }) {
@@ -55,8 +56,10 @@ export function InvoicePDF({ invoice }) {
     clientName, clientAddress,
     issuedAt, dueAt,
     serviceDescription, hoursWorked, hourlyRate, subtotal, total, currency,
-    notes,
+    notes, lineItems = [],
   } = invoice;
+
+  const hasLineItems = lineItems.length > 0;
 
   return (
     <Document>
@@ -99,19 +102,47 @@ export function InvoicePDF({ invoice }) {
           </View>
         </View>
 
+        {/* Service description header */}
+        {serviceDescription ? (
+          <Text style={S.serviceDesc}>{serviceDescription}</Text>
+        ) : null}
+
         {/* Line items */}
-        <View style={S.tableHeader}>
-          <Text style={[S.col_desc, S.colHead]}>Description</Text>
-          <Text style={[S.col_hours, S.colHead]}>Hours</Text>
-          <Text style={[S.col_rate, S.colHead]}>Rate</Text>
-          <Text style={[S.col_amount, S.colHead]}>Amount</Text>
-        </View>
-        <View style={S.tableRow}>
-          <Text style={S.col_desc}>{serviceDescription}</Text>
-          <Text style={[S.col_hours, { textAlign: 'right' }]}>{hoursWorked}</Text>
-          <Text style={[S.col_rate, { textAlign: 'right' }]}>{fmt(hourlyRate, currency)}</Text>
-          <Text style={[S.col_amount, S.bold, { textAlign: 'right' }]}>{fmt(subtotal, currency)}</Text>
-        </View>
+        {hasLineItems ? (
+          <>
+            <View style={S.tableHeader}>
+              <Text style={[S.col_date, S.colHead]}>Date</Text>
+              <Text style={[S.col_desc, S.colHead]}>Description</Text>
+              <Text style={[S.col_hours, S.colHead]}>Hours</Text>
+              <Text style={[S.col_rate, S.colHead]}>Rate</Text>
+              <Text style={[S.col_amount, S.colHead]}>Amount</Text>
+            </View>
+            {lineItems.map((item, i) => (
+              <View key={item.id || i} style={S.tableRow}>
+                <Text style={S.col_date}>{fmtShortDate(item.date)}</Text>
+                <Text style={S.col_desc}>{item.description || '—'}</Text>
+                <Text style={[S.col_hours, { textAlign: 'right' }]}>{item.hours}</Text>
+                <Text style={[S.col_rate, { textAlign: 'right' }]}>{fmt(hourlyRate, currency)}</Text>
+                <Text style={[S.col_amount, S.bold, { textAlign: 'right' }]}>{fmt(item.hours * hourlyRate, currency)}</Text>
+              </View>
+            ))}
+          </>
+        ) : (
+          <>
+            <View style={S.tableHeader}>
+              <Text style={[S.col_desc_legacy, S.colHead]}>Description</Text>
+              <Text style={[S.col_hours_legacy, S.colHead]}>Hours</Text>
+              <Text style={[S.col_rate_legacy, S.colHead]}>Rate</Text>
+              <Text style={[S.col_amount_legacy, S.colHead]}>Amount</Text>
+            </View>
+            <View style={S.tableRow}>
+              <Text style={S.col_desc_legacy}>{serviceDescription}</Text>
+              <Text style={[S.col_hours_legacy, { textAlign: 'right' }]}>{hoursWorked}</Text>
+              <Text style={[S.col_rate_legacy, { textAlign: 'right' }]}>{fmt(hourlyRate, currency)}</Text>
+              <Text style={[S.col_amount_legacy, S.bold, { textAlign: 'right' }]}>{fmt(subtotal, currency)}</Text>
+            </View>
+          </>
+        )}
 
         {/* Totals */}
         <View style={S.totalsRow}>

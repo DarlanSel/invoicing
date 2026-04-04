@@ -6,6 +6,7 @@ import { Settings } from '../pages/Settings';
 import { InvoiceList } from '../pages/Invoices/InvoiceList';
 import { InvoiceCreate } from '../pages/Invoices/InvoiceCreate';
 import { InvoiceDetail } from '../pages/Invoices/InvoiceDetail';
+import { TimeEntries } from '../pages/TimeEntries/TimeEntries';
 
 export const router = createBrowserRouter([
   {
@@ -14,6 +15,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Dashboard /> },
       { path: 'projects', element: <ProjectList /> },
+      { path: 'time', element: <TimeEntries /> },
       { path: 'invoices', element: <InvoiceList /> },
       { path: 'invoices/new', element: <InvoiceCreate /> },
       { path: 'invoices/:id', element: <InvoiceDetail /> },

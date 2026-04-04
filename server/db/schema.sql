@@ -50,3 +50,26 @@ CREATE TABLE IF NOT EXISTS invoices (
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS time_entries (
+  id TEXT PRIMARY KEY,
+  project_id TEXT NOT NULL REFERENCES projects(id),
+  date TEXT NOT NULL,
+  hours REAL NOT NULL DEFAULT 8,
+  description TEXT NOT NULL DEFAULT '',
+  invoiced INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS invoice_line_items (
+  id TEXT PRIMARY KEY,
+  invoice_id TEXT NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+  time_entry_id TEXT REFERENCES time_entries(id),
+  date TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  hours REAL NOT NULL DEFAULT 0,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
