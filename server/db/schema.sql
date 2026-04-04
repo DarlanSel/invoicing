@@ -40,7 +40,6 @@ CREATE TABLE IF NOT EXISTS invoices (
   hourly_rate REAL NOT NULL DEFAULT 0,
   subtotal REAL NOT NULL DEFAULT 0,
   total REAL NOT NULL DEFAULT 0,
-  po_number TEXT,
   notes TEXT NOT NULL DEFAULT '',
   business_name TEXT NOT NULL DEFAULT '',
   business_address TEXT NOT NULL DEFAULT '',
